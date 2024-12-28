@@ -1,40 +1,104 @@
-LinkedIn Job Auto-Apply Bot 🚀
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+import time
 
-This Python script automates the process of applying for jobs on LinkedIn using the Selenium library. It simplifies job applications by navigating through job listings, filling in necessary details, and submitting applications. Ideal for those looking to streamline their job-hunting process.
-Features ✨
+ACCOUNT_EMAIL = #YOUR LOGIN EMAIL
+ACCOUNT_PASSWORD = #YOUR LOGIN PASSWORD
+PHONE = #YOUR PHONE NUMBER
 
-    Automatic Login: Logs in to LinkedIn using your credentials.
-    Job Search Navigation: Accesses job listings based on your specified criteria.
-    Job Application Automation: Fills in phone numbers and submits simple applications.
-    Error Handling: Skips jobs with complex application processes or missing "Apply" buttons.
-    User Interaction: Pauses for manual CAPTCHA solving.
-    Persistent Browser: Optionally keeps the browser open for debugging.
 
-Requirements 🛠
+def abort_application():
+    # Click Close Button
+    close_button = driver.find_element(by=By.CLASS_NAME, value="artdeco-modal__dismiss")
+    close_button.click()
 
-    Python 3.x
-    Selenium
-    Chrome WebDriver
-    webdriver-manager for managing ChromeDriver versions
+    time.sleep(2)
+    # Click Discard Button
+    discard_button = driver.find_elements(by=By.CLASS_NAME, value="artdeco-modal__confirm-dialog-btn")[1]
+    discard_button.click()
 
-Setup ⚙️
 
-    Clone the repository.
-    Install dependencies using pip install selenium webdriver-manager.
-    Replace placeholders in the script with your:
-        LinkedIn email and password
-        Phone number
-        ChromeDriver path
-    Run the script and follow the prompts.
+chrome_driver_path = #YOUR CHROME DRIVER PATH
 
-Usage 🚦
+# Optional - Automatically keep your chromedriver up to date.
+from webdriver_manager.chrome import ChromeDriverManager  # pip install webdriver-manager
+chrome_driver_path = ChromeDriverManager(path=YOUR CHROME DRIVER FOLDER).install()
 
-    Open the script and customize job search criteria in the URL.
-    Run the script.
-    Solve the CAPTCHA manually when prompted.
-    Let the bot do the rest!
+# Optional - Keep the browser open if the script crashes.
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_experimental_option("detach", True)
 
-Notes 📝
+service = ChromeService(executable_path=chrome_driver_path)
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    The script is tailored for LinkedIn's current UI; adjustments may be needed for future updates.
-    Use responsibly to avoid violating LinkedIn's terms of service.
+driver.get("https://www.linkedin.com/jobs/search/?currentJobId=3586148395&f_LF=f_AL&geoId=101356765&"
+           "keywords=python&location=London%2C%20England%2C%20United%20Kingdom&refresh=true")
+
+# Click Reject Cookies Button
+time.sleep(2)
+reject_button = driver.find_element(by=By.CSS_SELECTOR, value='button[action-type="DENY"]')
+reject_button.click()
+
+# Click Sign in Button
+time.sleep(2)
+sign_in_button = driver.find_element(by=By.LINK_TEXT, value="Sign in")
+sign_in_button.click()
+
+# Sign in
+time.sleep(5)
+email_field = driver.find_element(by=By.ID, value="username")
+email_field.send_keys(ACCOUNT_EMAIL)
+password_field = driver.find_element(by=By.ID, value="password")
+password_field.send_keys(ACCOUNT_PASSWORD)
+password_field.send_keys(Keys.ENTER)
+
+# CAPTCHA - Solve Puzzle Manually
+input("Press Enter when you have solved the Captcha")
+
+# Get Listings
+time.sleep(5)
+all_listings = driver.find_elements(by=By.CSS_SELECTOR, value=".job-card-container--clickable")
+
+# Apply for Jobs
+for listing in all_listings:
+    print("Opening Listing")
+    listing.click()
+    time.sleep(2)
+    try:
+        # Click Apply Button
+        apply_button = driver.find_element(by=By.CSS_SELECTOR, value=".jobs-s-apply button")
+        apply_button.click()
+
+        # Insert Phone Number
+        # Find an <input> element where the id contains phoneNumber
+        time.sleep(5)
+        phone = driver.find_element(by=By.CSS_SELECTOR, value="input[id*=phoneNumber]")
+        if phone.text == "":
+            phone.send_keys(PHONE)
+
+        # Check the Submit Button
+        submit_button = driver.find_element(by=By.CSS_SELECTOR, value="footer button")
+        if submit_button.get_attribute("data-control-name") == "continue_unify":
+            abort_application()
+            print("Complex application, skipped.")
+            continue
+        else:
+            # Click Submit Button
+            print("Submitting job application")
+            submit_button.click()
+
+        time.sleep(2)
+        # Click Close Button
+        close_button = driver.find_element(by=By.CLASS_NAME, value="artdeco-modal__dismiss")
+        close_button.click()
+
+    except NoSuchElementException:
+        abort_application()
+        print("No application button, skipped.")
+        continue
+
+time.sleep(5)
+driver.quit()
